@@ -2,12 +2,41 @@
 
 ## 1. obj
 
-1.1. 创建基础对象 	
+基本概念: 
+LittleGL中所有对象都是继承与obj对象; 
+
+obj对象具有以下属性: 
+>坐标(Coordinates)
+>父对象(Parent object)
+>子对象们(Children)
+>风格(Style)
+
+以下属性也是obj的属性(有些对象可能是没有以下属性的):
+>隐藏(hidden)
+>点击(click)
+>置顶(top)
+>拖拽(drag)：长按设备后可以拖拽对象	
+>抛出(drag_throw)：拖拽过程中，可以抛出该对象
+>父对象一起拖拽(drag_parent)：当对象被拖拽时，父对象也会被移动
+
+窗口对象拥有的属性(实际测试出来的)：
+>隐藏(hidden)：有
+>点击(click)：无
+>置顶(top)：
+>拖拽(drag)：无
+>抛出(drag_throw)：无
+>父对象一起拖拽(drag_parent)：无
+
+LIttleGL初始化之后(lv_init()函数调用之后)会创建3个屏幕：
+1. 默认屏幕(def_scr)
+2. 顶层屏幕(top_layer)
+3. 系统屏幕(sys_layer), 系统层是系统库中使用的, 例如鼠标
+
+1.1. 创建基础对象 
 ```
 lv_obj_t * lv_obj_create(lv_obj_t * parent, lv_obj_t * copy); 
 ```
-
-说明: 如果parent是null则创建一个屏幕对象.
+>screen1 = lv_obj_create(NULL, NULL)：创建屏幕(screen)，创建屏幕后可以使用lv_scr_load(screen1)加载屏幕(screen).
 
 1.2.  删除对象和它的所有子对象;	
 ```
@@ -70,11 +99,21 @@ void lv_obj_set_height(lv_obj_t * obj, lv_coord_t h);
 ```
 void lv_obj_align(lv_obj_t * obj,lv_obj_t * base, lv_align_t align, lv_coord_t x_mod, lv_coord_t y_mod);
 ```
+>1. `lv_obj_t * obj`：对齐对象
+>2. `lv_obj_t * base`：参考对象, NULL代表参考对象为对齐对象的父对象
+>3. `lv_align_t align`： 对齐参数如下：LV_ALIGIN_(OUT/IN)_(TOP/LEFT/RIGHT/BOTTOM)_(TOP/LEFT/RIGHT/BOTTOM)
+![对齐参数](https://littlevgl.com/docs/object_types/align.png  "对齐参数")
+>4. `lv_coord_t x_mod, lv_coord_t y_mod`: x和y偏移量
 
 1.14.设置对象的风格	
 ```
 void lv_obj_set_style(lv_obj_t * obj, lv_style_t * style);
 ```
+
+You can set a new style for an object with the lv_obj_set_style(obj, &new_style) function. If NULL is set as style then the object will inherit its parent's style. If you modify a style you have to notify the objects who are using the modified styled. You can use either lv_obj_refresh_style(obj) or to notify all object with a given style lv_obj_report_style_mod(&style). Set lv_obj_report_style_mod's parameter to NULL to notify all objects. 后面的刷新是什么意思????
+
+>对象继承父对象的风格：lv_obj_set_style(obj, NULL); 
+
 
 下面代码有问题: 点击后风格会消失
 ~~~
@@ -168,7 +207,7 @@ int littlevGl(void)
     lv_obj_t *l2 = lv_label_create(btn2, NULL);
 
     lv_label_set_text(l1, "btn1"); 
-    lv_label_set_text(l2, "btn2");   
+    lv_label_set_text(l2, "btn2"); 
 
     // lv_obj_align(btn2, btn1, LV_ALIGN_OUT_RIGHT_MID, -10, 0); 
     lv_obj_set_style(btn2, &lv_style_btn_rel); 
@@ -210,9 +249,12 @@ void lv_obj_set_drag_parent(lv_obj_t * obj, bool en)
 ```
 void lv_obj_set_protect(lv_obj_t * obj, uint8_t prot)
 ```
-
-说明: 暂时不理解是干什么的?
-
+在库中会自动发生一些特定的动作。为了防止一个或多个这样的行为，你可以保护对象不受伤害。以下保护:
+1. LV_PROTECT_NONE 不保护
+2. LV_PROTECT_POS 防止自动定位(待理解！！！！)
+3. LV_PROTECT_FOLLOW 在自动排序(例如在lv_cont中布局)中防止对象被跟踪
+4. LV_PROTECT_PARENT 
+5. LV_PROTECT_CHILD_CHG Disable the child change signal. (库内部使用)
 1.24. 设置对象的信号函数(待理解作用)	
 ```
 void lv_obj_set_signal_func(lv_obj_t * obj, lv_signal_func_t fp);
@@ -243,12 +285,12 @@ void lv_obj_set_free_num(lv_obj_t * obj, LV_OBJ_FREE_NUM_TYPE free_num);
 void lv_obj_set_free_ptr(lv_obj_t * obj, void * free_p);
 ```
 
-1.30. 动画的对象???(这个是纯翻译, 再理解下什么意思)		
+1.30. 动画的对象???(这个是纯翻译, 再理解下什么意思)	
 ```
 void lv_obj_animate(lv_obj_t * obj, lv_anim_builtin_t type, uint16_t time, uint16_t delay, void (*cb) (lv_obj_t *));
 ```
 
-1.31. 返回一个指向活动屏幕的指针	
+1.31. 返回当前激活的屏幕	
 ```
 lv_obj_t * lv_scr_act(void);
 ```
@@ -273,17 +315,129 @@ lv_obj_t * lv_obj_get_screen(lv_obj_t * obj);
 lv_obj_t * lv_obj_get_parent(lv_obj_t * obj);
 ```
 
- 1.36.迭代对象的子对象(从最先创建的子对象开始到最后创建的)	
+ 1.36.迭代对象的子对象(从最后创建的子对象开始迭代)	
 ```
 lv_obj_t * lv_obj_get_child(lv_obj_t * obj, lv_obj_t * child);
 ```
+>1. `lv_obj_t * obj`：待获取子对象的对象
+>2. `lv_obj_t * child`：待获取的子对象前一个子对象
+>3. `返回值 lv_obj_t * `：获取的子对象
+例如：获取对象的最后创建的子对象:child = lv_obj_get_child(obj, NULL); 
 
- 1.36.迭代对象的子对象(从最后创建的子对象开始到最开始创建的)	
+ 1.36.迭代对象的子对象(从最开始创建的子对象开始迭代)	
 ```
 lv_obj_t * lv_obj_get_child_back(lv_obj_t * obj, lv_obj_t * child);
 ```
+>1. `lv_obj_t * obj`：待获取子对象的对象
+>2. `lv_obj_t * child`：待获取的子对象前一个子对象
+>3. `返回值 lv_obj_t * `：获取的子对象
+例如：获取对象的第一个创建的子对象:child = lv_obj_get_child_back(obj, NULL); 
 
 1.37.计算对象的子对象数量	
 ```
 uint16_t lv_obj_count_children(lv_obj_t * obj);
+```
+
+1.38. 获取对象的坐标(x1, y1, x2, y2)
+```
+void lv_obj_get_coords(lv_obj_t * obj, lv_area_t * cords_p);
+```
+
+1.39. 获取对象的x坐标(应该是对象的原点, 待测试)
+```
+lv_coord_t lv_obj_get_x(lv_obj_t * obj);
+```
+
+1.39. 获取对象的y坐标(应该是对象的原点, 待测试)
+```
+lv_coord_t lv_obj_get_y(lv_obj_t * obj);
+```
+
+1.39. 获取对象的宽度
+```
+lv_coord_t lv_obj_get_width(lv_obj_t * obj);
+```
+
+1.39. 获取对象的高度
+```
+lv_coord_t lv_obj_get_height(lv_obj_t * obj);
+```
+
+1.40. 获取对象的扩展大小(??????不理解)
+```
+lv_coord_t lv_obj_get_ext_size(lv_obj_t * obj);
+```
+
+1.41. 获取对象风格
+```
+lv_style_t * lv_obj_get_style(lv_obj_t * obj);
+```
+
+1.42. 获取对象是否隐藏
+```
+bool lv_obj_get_hidden(lv_obj_t * obj);
+```
+
+1.43. 获取对象是否可以点击
+```
+bool lv_obj_get_click(lv_obj_t * obj);
+```
+
+1.44. 获取对象是否被置顶
+```
+bool lv_obj_get_top(lv_obj_t * obj);
+```
+
+1.45. 获取对象是否可以被拖拽
+```
+bool lv_obj_get_drag(lv_obj_t * obj);
+```
+
+1.46. 获取对象是否可以被抛出
+```
+bool lv_obj_get_drag_throw(lv_obj_t * obj);
+```
+
+1.47. 获取对象是否开启了拖拽父对象一起拖拽功能
+```
+bool lv_obj_get_drag_parent(lv_obj_t * obj);
+```
+1.48. 获取对象保护属性
+```
+uint8_t lv_obj_get_protect(lv_obj_t * obj);
+```
+
+1.49. 判断对象的对应保护为是否开启(保护为可以多选, 通过"与"进行多选)
+```
+bool lv_obj_is_protected(lv_obj_t * obj, uint8_t prot);
+```
+
+1.50. 获取对象的型号函数
+```
+lv_signal_func_t   lv_obj_get_signal_func(lv_obj_t * obj);
+```
+
+1.51. Get the design function of an object
+```
+lv_design_func_t lv_obj_get_design_func(lv_obj_t * obj);
+```
+
+1.52. Get the ext pointer
+```
+void * lv_obj_get_ext_attr(lv_obj_t * obj);
+```
+
+1.53. Get the free number
+```
+LV_OBJ_FREE_NUM_TYPE lv_obj_get_free_num(lv_obj_t * obj);
+```
+
+1.54. Get the free pointer
+```
+void * lv_obj_get_free_ptr(lv_obj_t * obj);
+```
+
+1.55. Get the group of the object
+```
+void * lv_obj_get_group(lv_obj_t * obj);
 ```
